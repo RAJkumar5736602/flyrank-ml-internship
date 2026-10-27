@@ -1,0 +1,18 @@
+{
+ "random_rows": {
+  "roc_auc": 0.769,
+  "avg_precision": 0.782,
+  "p@50": 0.94,
+  "p@200": 0.925,
+  "base_rate": 0.542,
+  "n": 6000
+ },
+ "client_holdout": {
+  "roc_auc": 0.626,
+  "avg_precision": 0.617,
+  "p@50": 0.74,
+  "p@200": 0.68,
+  "base_rate": 0.511,
+  "n": 6163
+ }
+}
