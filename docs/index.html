@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Which pages should an editor review first? Content refresh ranking on held-out clients</title>
+<style>body{font-family:system-ui,sans-serif;max-width:760px;margin:2rem auto;padding:0 1rem;line-height:1.55;color:#222}table{border-collapse:collapse;width:100%;margin:1rem 0}td,th{border:1px solid #ccc;padding:.4rem;text-align:left}th{background:#f3f3f3}h1{font-size:1.6rem}.note{color:#555;font-size:.92rem}</style></head><body>
+<h1>Which pages should an editor review first? Ranking content-refresh candidates on held-out clients</h1>
+<p class="note">Rajkumar · FlyRank ML Internship capstone (Lane 2: refresh / content opportunity scoring) · <a href="https://github.com/RAJkumar5736602/flyrank-ml-internship">code &amp; notebooks</a></p>
+
+<h2>Abstract</h2>
+<p>Question: which existing pages should an editor review first because their search traffic is declining? Data: the FlyRank ML Internship starter dataset of 30,000 anonymized pages from 32 clients, labelled by <code>trend_direction == "down"</code>. Method: a hand-written baseline rule versus logistic regression, random forest and HistGBM, all evaluated on the same split with 7 clients fully held out (6,163 test pages, base rate 0.511), after a leakage check. Result: the hand rule ranked worse than random (AUC 0.463, Precision@50 0.36), while logistic regression reached AUC 0.631 and Precision@50 0.82. Use: decision-support for ordering editorial reviews, not a forecast or causal claim.</p>
+
+<h2>1. Problem</h2>
+<p>An editor cannot review every page each month. The decision this supports is the order of the review queue: put pages most likely to be declining at the top. The metric is Precision@50 on held-out clients, always shown next to the base rate, with ROC AUC alongside.</p>
+
+<h2>2. Data</h2>
+<ul><li>30,000 pages, 32 clients, one row per page (grain verified). Rows per client range from 3 to 7,008 (median 567).</li>
+<li>Label base rate: 0.542 overall, 0.594 among pages with at least 1k impressions in 90 days.</li>
+<li><code>word_count</code> is missing on 7,699 rows (25.7%).</li>
+<li>Only the bundled starter CSV was used, not the gated full warehouse. No client names appear here.</li></ul>
+
+<h2>3. Methodology</h2>
+<p><b>Split:</b> 25 train clients, 7 test clients, no overlap; seed 42. <b>Leakage check:</b> with the same random forest and split, safe features gave AUC 0.626; adding <code>trend_pct</code> gave AUC 1.000 and adding the 30-day windows gave 0.895. Both leak the label and were excluded. <b>Baseline:</b> a hand rule weighting age, staleness, visibility and a position 4–20 bonus.</p>
+<p><b>Signal audit:</b> decline rate is 0.60–0.64 for pages up to 236 days old but 0.42 for pages older than 333 days, the opposite of the "old pages decay" intuition. Competition level does not separate classes (0.556 / 0.563 / 0.567).</p>
+
+<h2>4. Results</h2>
+<table><tr><th>Model (7 held-out clients, n=6,163, base rate 0.511)</th><th>AUC</th><th>AP</th><th>P@50</th><th>P@200</th></tr>
+<tr><td>Baseline hand rule</td><td>0.463</td><td>0.470</td><td>0.36</td><td>0.325</td></tr>
+<tr><td>Logistic regression</td><td>0.631</td><td>0.629</td><td>0.82</td><td>0.780</td></tr>
+<tr><td>Random forest</td><td>0.626</td><td>0.617</td><td>0.74</td><td>0.680</td></tr>
+<tr><td>HistGBM</td><td>0.623</td><td>0.621</td><td>0.76</td><td>0.745</td></tr></table>
+<p>Top-50 precision went from 0.36 (hand rule) to 0.82 (logistic regression) against a base rate of 0.511. Top random-forest permutation importances: <code>days_with_impressions</code>, <code>avg_position</code>, <code>content_age_days</code>. The model ranks worse on high-visibility pages (AUC 0.581) than low-visibility ones (AUC 0.651).</p>
+
+<h2>5. Limitations &amp; honest framing</h2>
+<ul><li>A random row split overstates performance: the same random forest scores AUC 0.769 / P@50 0.94 on a row split versus 0.626 / 0.74 on the client holdout.</li>
+<li>The 90-day features overlap the label window; this is a known limit.</li>
+<li>AUC around 0.63 is modest discrimination. Results come from the starter sample only.</li>
+<li>Paper Finding #1 ("growing content is longer") was not reproduced in this sample: median word count 2,848 growing vs 2,909 declining; growing pages longer in only 18 of 30 clients.</li>
+<li>Claims are observed and measured, predictive not causal.</li></ul>
+
+<h2>6. Ranked recommendations</h2>
+<ol><li>Order reviews by model score, not by page age: the age rule is backwards in this data.</li>
+<li>Exclude pages under 100 impressions (7,994 pages) from action.</li>
+<li>Queue from this run: refresh 2,951 · refresh_and_review_ctr 4,872 · review 10,509 · monitor 11,668. A human reviews before any change.</li>
+<li>Next step: replace baseline-derived reason codes with model-based ones.</li></ol>
+
+<h2>7. Reproducibility</h2>
+<p><a href="https://github.com/RAJkumar5736602/flyrank-ml-internship">Repository</a>: notebooks in <code>work/notebooks/</code>, metric receipts in <code>work/outputs/*.json</code>, findings in <code>work/FINDINGS.md</code>. Seed 42. Re-run: <code>pip install -r requirements.txt &amp;&amp; python scripts/run_all.py</code>, then execute each notebook.</p>
+
+<h2>Acknowledgments &amp; data credit</h2>
+<p>Built on the FlyRank ML Internship dataset — <a href="https://flyrank.ai">https://flyrank.ai</a>. Thanks to the FlyRank team for the internship programme and anonymized data.</p>
+</body></html>
